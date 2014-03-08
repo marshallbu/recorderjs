@@ -7,7 +7,7 @@
   "dependencies": {
   },
   "scripts": [
-    "recorder.js"
+    "index.js"
   ],
   "license": "MIT"
 }
