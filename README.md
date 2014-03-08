@@ -1,5 +1,7 @@
 # Recorder.js
 
+__Heads up. This is just a first-pass at turning Recorderjs into a component.__
+
 ## A plugin for recording/exporting the output of Web Audio API nodes
 
 ### Syntax
