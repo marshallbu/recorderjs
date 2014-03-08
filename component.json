@@ -1,0 +1,13 @@
+{
+  "name": "recorderjs",
+  "description": "recorderjs as a component",
+  "version": "1.0.0",
+  "keywords": [
+  ],
+  "dependencies": {
+  },
+  "scripts": [
+    "recorder.js"
+  ],
+  "license": "MIT"
+}
