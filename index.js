@@ -1,80 +1,3 @@
-/*
-var WORKER_PATH = 'recorderWorker.js';
-
-var asdf = function(source, cfg){
-  var config = cfg || {};
-  var bufferLen = config.bufferLen || 4096;
-  this.context = source.context;
-  this.node = (this.context.createScriptProcessor ||
-               this.context.createJavaScriptNode).call(this.context,
-                                                       bufferLen, 2, 2);
-  var worker = new Worker(config.workerPath || WORKER_PATH);
-  worker.postMessage({
-    command: 'init',
-    config: {
-      sampleRate: this.context.sampleRate
-    }
-  });
-  var recording = false,
-    currCallback;
-
-  this.node.onaudioprocess = function(e){
-    if (!recording) return;
-    worker.postMessage({
-      command: 'record',
-      buffer: [
-        e.inputBuffer.getChannelData(0),
-        e.inputBuffer.getChannelData(1)
-      ]
-    });
-  }
-
-  this.configure = function(cfg){
-    for (var prop in cfg){
-      if (cfg.hasOwnProperty(prop)){
-        config[prop] = cfg[prop];
-      }
-    }
-  }
-
-  this.record = function(){
-    recording = true;
-  }
-
-  this.stop = function(){
-    recording = false;
-  }
-
-  this.clear = function(){
-    worker.postMessage({ command: 'clear' });
-  }
-
-  this.getBuffer = function(cb) {
-    currCallback = cb || config.callback;
-    worker.postMessage({ command: 'getBuffer' })
-  }
-
-  this.exportWAV = function(cb, type){
-    currCallback = cb || config.callback;
-    type = type || config.type || 'audio/wav';
-    if (!currCallback) throw new Error('Callback not set');
-    worker.postMessage({
-      command: 'exportWAV',
-      type: type
-    });
-  }
-
-  worker.onmessage = function(e){
-    var blob = e.data;
-    currCallback(blob);
-  }
-
-  source.connect(this.node);
-  this.node.connect(this.context.destination);    //this should not be necessary
-};
-*/
-
-
 var Thread = require('thread');
 
 var Recorder = function(source, cfg) {
@@ -88,7 +11,6 @@ var Recorder = function(source, cfg) {
 
   // Establish thread
   this.thread = new Thread(recorderWorker);
-  console.log(this.context, this.context.sampleRate);
 
   // init thread
   this.thread.send('init', {
@@ -107,26 +29,15 @@ var Recorder = function(source, cfg) {
     });
   }.bind(this);
 
-/*
-  worker.onmessage = function(e){
-    var blob = e.data;
-    currCallback(blob);
-  }
-*/
-
-  this.thread.on('hello', function( obj ) {
-    console.log('got hello', obj);
-  });
-
   this.thread.on('buffer', function(data) {
-    console.log('buffer');
-    console.log(data);
+
   });
   this.thread.on('log', function(message) {
     console.log(message);
-
   });
-
+  this.thread.on('blob', function(blob) {
+    //this.forceDownload(blob, 'hello.wav');
+  }.bind(this) );
 
   source.connect(this.node);
   this.node.connect(this.context.destination);    //this should not be necessary
@@ -170,7 +81,7 @@ Recorder.prototype.getBuffer = function(cb) {
 
 Recorder.prototype.exportWAV = function(cb, type) {
   this.currCallback = cb || this.config.callback;
-  type = type || config.type || 'audio/wav';
+  type = type || this.config.type || 'audio/wav';
   if ( !this.currCallback ) throw new Error( 'Callback not set' );
   this.thread.send('exportWAV', {
     type: type
@@ -207,6 +118,17 @@ function recorderWorker() {
     recBuffersR = [];
   });
 
+  thread.on('exportWAV', function(e) {
+    thread.send('log', e);
+    var type = 'audio/wav';
+    var bufferL = mergeBuffers(recBuffersL, recLength);
+    var bufferR = mergeBuffers(recBuffersR, recLength);
+    var interleaved = interleave(bufferL, bufferR);
+    var dataview = encodeWAV(interleaved);
+    var audioBlob = new Blob([dataview], { type: type });
+    thread.send('blob', audioBlob);
+  });
+
   function mergeBuffers(recBuffers, recLength){
     var result = new Float32Array(recLength);
     var offset = 0;
@@ -216,7 +138,70 @@ function recorderWorker() {
     }
     return result;
   }
-}
 
+  function interleave(inputL, inputR){
+    var length = inputL.length + inputR.length;
+    var result = new Float32Array(length);
+
+    var index = 0,
+      inputIndex = 0;
+
+    while (index < length){
+      result[index++] = inputL[inputIndex];
+      result[index++] = inputR[inputIndex];
+      inputIndex++;
+    }
+    return result;
+  }
+
+  function floatTo16BitPCM(output, offset, input){
+    for (var i = 0; i < input.length; i++, offset+=2){
+      var s = Math.max(-1, Math.min(1, input[i]));
+      output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+  }
+
+  function writeString(view, offset, string){
+    for (var i = 0; i < string.length; i++){
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  }
+
+  function encodeWAV(samples){
+    var buffer = new ArrayBuffer(44 + samples.length * 2);
+    var view = new DataView(buffer);
+
+    /* RIFF identifier */
+    writeString(view, 0, 'RIFF');
+    /* file length */
+    view.setUint32(4, 32 + samples.length * 2, true);
+    /* RIFF type */
+    writeString(view, 8, 'WAVE');
+    /* format chunk identifier */
+    writeString(view, 12, 'fmt ');
+    /* format chunk length */
+    view.setUint32(16, 16, true);
+    /* sample format (raw) */
+    view.setUint16(20, 1, true);
+    /* channel count */
+    view.setUint16(22, 2, true);
+    /* sample rate */
+    view.setUint32(24, sampleRate, true);
+    /* byte rate (sample rate * block align) */
+    view.setUint32(28, sampleRate * 4, true);
+    /* block align (channel count * bytes per sample) */
+    view.setUint16(32, 4, true);
+    /* bits per sample */
+    view.setUint16(34, 16, true);
+    /* data chunk identifier */
+    writeString(view, 36, 'data');
+    /* data chunk length */
+    view.setUint32(40, samples.length * 2, true);
+
+    floatTo16BitPCM(view, 44, samples);
+
+    return view;
+  }
+}
 
 module.exports = Recorder;

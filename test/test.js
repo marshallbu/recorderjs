@@ -21,8 +21,9 @@ request.onload = function() {
     setTimeout(function() {
       source.stop();
       recorder.stop();
-      recorder.getBuffer();
-      
+      recorder.exportWAV(function() {
+        console.log('done');
+      }, 'audio/wav');
     }, 1000);
 
   }, function() {});
