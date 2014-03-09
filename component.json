@@ -2,9 +2,9 @@
   "name": "recorderjs",
   "description": "recorderjs as a component",
   "version": "1.0.1",
-  "keywords": [
-  ],
+  "keywords": [],
   "dependencies": {
+    "itsjoesullivan/thread": "*"
   },
   "scripts": [
     "index.js"
