@@ -38,6 +38,7 @@ var Recorder = function(source, cfg) {
     console.log(message);
   });
   this.thread.on('blob', function(blob) {
+    this.currCallback( blob );
     //this.forceDownload(blob, 'hello.wav');
   }.bind(this) );
 
@@ -79,7 +80,18 @@ Recorder.prototype.configure = function(cfg){
 Recorder.prototype.getBuffer = function(cb) {
   console.log('getting buffer');
   this.currCallback = cb || this.config.callback;
+  this.currCallback = function( arr ) {
+    var buffer = (new AudioContext()).createBuffer( 1, arr[0].length, 44100 );
+    buffer.getChannelData(0).set( arr[0] );
+    cb( buffer );
+  };
   this.thread.send('getBuffer');
+};
+
+Recorder.prototype.getBlob = function(cb) {
+  console.log('getting blob');
+  this.currCallback = cb || this.config.callback;
+  this.thread.send('getBlob');
 };
 
 Recorder.prototype.exportWAV = function(cb, type) {
@@ -113,7 +125,19 @@ function recorderWorker() {
     var buffers = [];
     buffers.push( mergeBuffers( recBuffersL, recLength ) );
     buffers.push( mergeBuffers( recBuffersR, recLength ) );
+
     this.send( 'buffer', buffers );
+  });
+
+  thread.on('getBlob', function() {
+    var type = 'audio/wav';
+    var bufferL = mergeBuffers(recBuffersL, recLength);
+    var bufferR = mergeBuffers(recBuffersR, recLength);
+    var interleaved = interleave(bufferL, bufferR);
+    var dataview = encodeWAV(interleaved);
+    var audioBlob = new Blob([dataview], { type: type });
+    thread.send('blob', audioBlob);
+
   });
 
   thread.on('clear', function() {

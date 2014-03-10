@@ -18,12 +18,17 @@ request.onload = function() {
     recorder.record();
     source.connect(context.destination);
     source.start();
+
     setTimeout(function() {
       source.stop();
       recorder.stop();
-      recorder.exportWAV(function() {
-        console.log('done');
-      }, 'audio/wav');
+      recorder.getBuffer(function( buffer ) {
+        var source = context.createBufferSource();
+        source.buffer = buffer;
+        source.connect(context.destination);
+        source.start();
+
+      });
     }, 1000);
 
   }, function() {});
