@@ -30,8 +30,9 @@ var Recorder = function(source, cfg) {
   }.bind(this);
 
   this.thread.on('buffer', function(data) {
+    this.currCallback( data );
+  }.bind(this) );
 
-  });
   this.thread.on('log', function(message) {
     console.log(message);
   });
