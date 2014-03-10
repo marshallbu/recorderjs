@@ -30,6 +30,7 @@ var Recorder = function(source, cfg) {
   }.bind(this);
 
   this.thread.on('buffer', function(data) {
+    console.log('got buffer');
     this.currCallback( data );
   }.bind(this) );
 
@@ -76,6 +77,7 @@ Recorder.prototype.configure = function(cfg){
 };
 
 Recorder.prototype.getBuffer = function(cb) {
+  console.log('getting buffer');
   this.currCallback = cb || this.config.callback;
   this.thread.send('getBuffer');
 };
@@ -107,6 +109,7 @@ function recorderWorker() {
   });
 
   thread.on('getBuffer', function() {
+    thread.send('log', 'getBuffer at worker');
     var buffers = [];
     buffers.push( mergeBuffers( recBuffersL, recLength ) );
     buffers.push( mergeBuffers( recBuffersR, recLength ) );
