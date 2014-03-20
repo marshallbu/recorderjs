@@ -25,8 +25,40 @@ request.onload = function() {
       recorder.getBuffer(function( buffer ) {
         var source = context.createBufferSource();
         source.buffer = buffer;
+        var offlineContext = new OfflineAudioContext(1, buffer.length, 44100);
+        var newSource = offlineContext.createBufferSource();
+        newSource.buffer = buffer;
+        var newRecorder = new Recorder( newSource, {
+          context: offlineContext
+        });
+        offlineContext.oncomplete = function() {
+          newRecorder.getBlob(function( blob ) {
+            console.log(blob);
+
+          });
+          /*
+          newRecorder.getBuffer(function( buffer ) {
+            var context = new AudioContext();
+            var source = context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(context.destination);
+            source.start();
+          });
+          */
+        };
+        newRecorder.record();
+        newSource.start(0);
+        offlineContext.startRendering();
+
+        /*
+        recorder.getBlob(function(blob) {
+          console.log('got blob', blob);
+        });
+        */
+        /*
         source.connect(context.destination);
         source.start();
+        */
 
       });
     }, 1000);
