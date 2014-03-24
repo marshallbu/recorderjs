@@ -19,6 +19,7 @@ var Recorder = function(source, cfg) {
     }
   });
 
+
   this.node.onaudioprocess = function(e) {
     if (!this.recording) return;
     this.thread.send('record', {
@@ -30,17 +31,24 @@ var Recorder = function(source, cfg) {
   }.bind(this);
 
   this.thread.on('buffer', function(data) {
+    this.currCallback( data );
+  }.bind(this) );
 
-  });
   this.thread.on('log', function(message) {
     console.log(message);
   });
   this.thread.on('blob', function(blob) {
+    this.currCallback( blob );
     //this.forceDownload(blob, 'hello.wav');
   }.bind(this) );
 
   source.connect(this.node);
   this.node.connect(this.context.destination);    //this should not be necessary
+
+  // OfflineAudioContext means render immediately
+  if ( this.context instanceof OfflineAudioContext ) {
+    this.setBuffer(source.buffer);
+  }
 
 };
 
@@ -49,11 +57,16 @@ Recorder.prototype.record = function() {
 };
 
 Recorder.prototype.stop = function() {
-  recording = false;
+  this.recording = false;
 };
 
 Recorder.prototype.clear = function() {
   this.thread.send('clear');
+};
+
+Recorder.prototype.setBuffer = function(buffer) {
+  window.buffer = buffer;
+  this.thread.send('buffer', buffer.getChannelData(0) );
 };
 
 Recorder.prototype.forceDownload = function(blob, filename){
@@ -76,7 +89,17 @@ Recorder.prototype.configure = function(cfg){
 
 Recorder.prototype.getBuffer = function(cb) {
   this.currCallback = cb || this.config.callback;
+  this.currCallback = function( arr ) {
+    var buffer = (new AudioContext()).createBuffer( 1, arr[0].length, 44100 );
+    buffer.getChannelData(0).set( arr[0] );
+    cb( buffer );
+  };
   this.thread.send('getBuffer');
+};
+
+Recorder.prototype.getBlob = function(cb) {
+  this.currCallback = cb || this.config.callback;
+  this.thread.send('getBlob');
 };
 
 Recorder.prototype.exportWAV = function(cb, type) {
@@ -106,10 +129,35 @@ function recorderWorker() {
   });
 
   thread.on('getBuffer', function() {
+    thread.send('log', 'getBuffer at worker');
     var buffers = [];
-    buffers.push( mergeBuffers( recBuffersL, recLength ) );
-    buffers.push( mergeBuffers( recBuffersR, recLength ) );
+    if(this.buffer) {
+      buffers = [ this.buffer, this.buffer ];
+    } else {
+      buffers.push( mergeBuffers( recBuffersL, recLength ) );
+      buffers.push( mergeBuffers( recBuffersR, recLength ) );
+    }
+
     this.send( 'buffer', buffers );
+  });
+
+  thread.on('buffer', function(bufferArgs) {
+    this.buffer = bufferArgs[0];
+  });
+
+  thread.on('getBlob', function() {
+    var type = 'audio/wav';
+    var buffers = [];
+    if(this.buffer) {
+      buffers = [ this.buffer, this.buffer ];
+    } else {
+      buffers.push(mergeBuffers(recBuffersL, recLength) );
+      buffers.push(mergeBuffers(recBuffersR, recLength) );
+    }
+    var interleaved = interleave(buffers[0], buffers[1] );
+    var dataview = encodeWAV(interleaved);
+    var audioBlob = new Blob([dataview], { type: type });
+    thread.send('blob', audioBlob);
   });
 
   thread.on('clear', function() {
