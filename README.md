@@ -7,7 +7,7 @@ Such a port was necessary because Matt's version has the worker code in a separa
 ##Usage
 
 ```javascript
-var recorder = new Recorder( mediaStreamSource, audioContext );
+this.recorder = new Recorder( mediaStreamSource, audioContext );
 this.recorder.record();
 
 // Now play sound into the mediaStreamSource
