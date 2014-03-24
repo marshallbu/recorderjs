@@ -9,6 +9,7 @@ I expect this codebase to diverge from Matt's, but credit for the worker idea an
 ##Usage
 
 ```javascript
+var Recorder = require('itsjoesullivan/recorderjs');
 this.recorder = new Recorder( mediaStreamSource, audioContext );
 this.recorder.record();
 
