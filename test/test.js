@@ -34,7 +34,21 @@ request.onload = function() {
         offlineContext.oncomplete = function() {
           newRecorder.getBlob(function( blob ) {
             console.log(blob);
-
+            /*
+            console.log('starting post');
+            var fd = new FormData();
+            fd.append('fname', 'asdf.wav');
+            fd.append('data', blob);
+            $.ajax({
+              type: "POST",
+              url: "upload",
+              data: fd,
+              processData: false,
+              contentType: false
+            }).done(function(data) {
+              console.log(data);
+            });
+            */
           });
           /*
           newRecorder.getBuffer(function( buffer ) {
