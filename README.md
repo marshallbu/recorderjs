@@ -1,6 +1,8 @@
 # Recorder.js component
 
-This is little more than a port of [Matt Diamond's](https://github.com/mattdiamond/Recorderjs) excellent web worker-solution to the challenge of processing audio data in the browser.
+This is little more than a port of [Matt Diamond's](https://github.com/mattdiamond/Recorderjs) excellent work to a component-friendly format.
+
+Such a port was necessary because Matt's version has the worker code in a separate file (presumably served statically), while components are meant to be built into a single file. My [thread](https://github.com/itsjoesullivan/thread) component lightly wraps workers in a way that makes writing worker code in-line palatable.
 
 ##Usage
 
