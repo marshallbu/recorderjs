@@ -1,7 +1,7 @@
 {
   "name": "recorderjs",
   "description": "recorderjs as a component",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "keywords": [],
   "dependencies": {
     "itsjoesullivan/thread": "*"
