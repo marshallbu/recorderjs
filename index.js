@@ -217,7 +217,7 @@ function recorderWorker() {
   }
 
   function encodeWAV(samples){
-    var buffer = new ArrayBuffer(44 + samples.length * 2);
+    var buffer = new ArrayBuffer(44 + samples.length );
     var view = new DataView(buffer);
 
     /* RIFF identifier */
