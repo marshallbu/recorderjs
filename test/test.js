@@ -1,83 +1,70 @@
+mocha.setup('bdd');
+var expect = chai.expect;
 var Thread = require('thread');
 var Recorder = require('recorderjs');
 
-window.AudioContext = window.AudioContext || window.webkitAudioContext;
-var context = new AudioContext();
+var buffer;
+describe('Recorder', function() {
+  before(function(done) {
+    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    var context = new AudioContext();
+    var request = new XMLHttpRequest();
+    request.open('GET', 'sample.mp3', true);
+    request.responseType = 'arraybuffer';
+    request.onload = function() {
+      context.decodeAudioData(request.response, function(buffer) {
+        window.buffer = buffer;
+        done();
+      })
+    };
+    request.send();
+  });
 
-var request = new XMLHttpRequest();
-request.open('GET', 'sample.mp3', true);
-request.responseType = 'arraybuffer';
+  it('exists', function() {
+    expect(Recorder).to.not.equal(undefined);
+  });
 
-request.onload = function() {
-  context.decodeAudioData(request.response, function(buffer) {
-    var source = 'asdf';
-    var cfg = {};
+  it('can listen', function(done) {
+    var context = new AudioContext();
     var source = context.createBufferSource();
-    source.buffer = buffer;
-    var recorder = new Recorder(source, cfg);
-    recorder.record();
+    source.buffer = window.buffer;
+    var r = new Recorder( source );
     source.connect(context.destination);
-    source.start();
-
+    r.record();
+    source.start(0);
     setTimeout(function() {
+      r.stop();
       source.stop();
-      recorder.stop();
-      recorder.getBuffer(function( buffer ) {
-        var source = context.createBufferSource();
-        source.buffer = buffer;
-        var offlineContext = new OfflineAudioContext(1, buffer.length, 44100);
-        var newSource = offlineContext.createBufferSource();
-        newSource.buffer = buffer;
-        var newRecorder = new Recorder( newSource, {
-          context: offlineContext
-        });
-        offlineContext.oncomplete = function() {
-          newRecorder.getBlob(function( blob ) {
-            console.log(blob);
-            /*
-            console.log('starting post');
-            var fd = new FormData();
-            fd.append('fname', 'asdf.wav');
-            fd.append('data', blob);
-            $.ajax({
-              type: "POST",
-              url: "upload",
-              data: fd,
-              processData: false,
-              contentType: false
-            }).done(function(data) {
-              console.log(data);
-            });
-            */
-          });
-          /*
-          newRecorder.getBuffer(function( buffer ) {
-            var context = new AudioContext();
-            var source = context.createBufferSource();
-            source.buffer = buffer;
-            source.connect(context.destination);
-            source.start();
-          });
-          */
-        };
-        newRecorder.record();
-        newSource.start(0);
-        offlineContext.startRendering();
-
-        /*
-        recorder.getBlob(function(blob) {
-          console.log('got blob', blob);
-        });
-        */
-        /*
-        source.connect(context.destination);
-        source.start();
-        */
-
+      r.getBuffer(function( err, buffer ) {
+        expect(buffer.length).to.be.above(6000);
+        expect(buffer.length).to.be.below(10000);
+        done();
       });
-    }, 1000);
+    }, 200);
+  });
 
-  }, function() {});
-}
-request.send();
+  it('can return wav', function(done) {
+    var context = new AudioContext();
+    var source = context.createBufferSource();
+    source.buffer = window.buffer;
+    var r = new Recorder( source );
+    source.connect(context.destination);
+    r.record();
+    source.start(0);
+    setTimeout(function() {
+      r.stop();
+      source.stop();
+      r.getWAV(function( err, wavBlob ) {
+        console.log(wavBlob);
+        expect( wavBlob instanceof Blob ).to.equal(true);
+        expect( wavBlob.size ).to.be.above(1000);
+        done();
+      });
+    }, 200);
+  });
+
+
+});
+
+mocha.run();
 

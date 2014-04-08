@@ -10,21 +10,22 @@ I expect this codebase to diverge from Matt's, but credit for the worker idea an
 
 ```javascript
 var Recorder = require('itsjoesullivan/recorderjs');
-this.recorder = new Recorder( mediaStreamSource, audioContext );
-this.recorder.record();
-
-// Now play sound into the mediaStreamSource
-this.on('finished', function() {
-  this.recorder.stop();
-  this.recorder.getBuffer( function( buffer ) {
-    // buffer is an audioBuffer
-    var source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect( audioContext.destination );
-    // Listen to your recording
-    source.start();
+var context = new AudioContext();
+var source = context.createBufferSource();
+source.buffer = buffer; // Imagine
+var r = new Recorder( source );
+r.record()
+source.start();
+setTimeout(function() {
+  r.stop();
+  source.stop();
+  r.getBuffer(function( err, buffer ) {
+    // buffer is PCM buffer of what you recorded
   });
-}, this);
+  r.getWAV(function( err, blob ) {
+    // blob is a wav!
+  });
+}, 500);
 ```
 
 

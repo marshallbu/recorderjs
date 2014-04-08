@@ -1,6 +1,7 @@
 var Thread = require('thread');
 
 var Recorder = function(source, cfg) {
+  console.log(source);
   this.config = cfg || {};
   var bufferLen = this.config.bufferLen || 4096;
   this.context = source.context;
@@ -19,7 +20,6 @@ var Recorder = function(source, cfg) {
     }
   });
 
-
   this.node.onaudioprocess = function(e) {
     if (!this.recording) return;
     this.thread.send('record', {
@@ -35,11 +35,10 @@ var Recorder = function(source, cfg) {
   }.bind(this) );
 
   this.thread.on('log', function(message) {
-    console.log(message);
+    //console.log(message);
   });
   this.thread.on('blob', function(blob) {
-    this.currCallback( blob );
-    //this.forceDownload(blob, 'hello.wav');
+    this.currCallback( null, blob );
   }.bind(this) );
 
   source.connect(this.node);
@@ -90,9 +89,14 @@ Recorder.prototype.configure = function(cfg){
 Recorder.prototype.getBuffer = function(cb) {
   this.currCallback = cb || this.config.callback;
   this.currCallback = function( arr ) {
-    var buffer = (new AudioContext()).createBuffer( 1, arr[0].length, 44100 );
-    buffer.getChannelData(0).set( arr[0] );
-    cb( buffer );
+    var buffer;
+    try {
+      buffer = (new AudioContext()).createBuffer( 1, arr[0].length, 44100 );
+      buffer.getChannelData(0).set( arr[0] );
+    } catch(e) {
+      return cb( e, buffer );
+    }
+    return cb( null, buffer );
   };
   this.thread.send('getBuffer');
 };
@@ -110,6 +114,7 @@ Recorder.prototype.exportWAV = function(cb, type) {
     type: type
   });
 };
+Recorder.prototype.getWAV = Recorder.prototype.exportWAV;
 
 function recorderWorker() {
   var recLength = 0,
