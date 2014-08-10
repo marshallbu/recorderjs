@@ -3,7 +3,6 @@
   "repo": "marshallbu/recorderjs",
   "description": "recorderjs as a component",
   "version": "2.6.0",
-  "keywords": [],
   "dependencies": {
     "marshallbu/thread": "*"
   },
@@ -19,5 +18,9 @@
     "test",
     "tests"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "homepage": "https://github.com/marshallbu/recorderjs",
+  "moduleType": [
+    "amd"
+  ]
 }
