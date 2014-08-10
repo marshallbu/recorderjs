@@ -38,7 +38,7 @@ var Recorder = function(source, cfg) {
     //console.log(message);
   });
   this.thread.on('blob', function(blob) {
-    this.currCallback( null, blob );
+    this.currCallback( blob );
   }.bind(this) );
 
   source.connect(this.node);
