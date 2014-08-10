@@ -9,5 +9,15 @@
   "scripts": [
     "index.js"
   ],
+  "main": "index.js",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "bower_modules",
+    "test",
+    "tests"
+  ],
   "license": "MIT"
 }
