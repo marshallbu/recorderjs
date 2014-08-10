@@ -59,6 +59,10 @@ Recorder.prototype.stop = function() {
   this.recording = false;
 };
 
+Recorder.prototype.isRecording = function() {
+    return this.recording;
+};
+
 Recorder.prototype.clear = function() {
   this.thread.send('clear');
 };
