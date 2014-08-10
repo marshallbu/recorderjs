@@ -4,7 +4,7 @@
   "version": "2.6.0",
   "keywords": [],
   "dependencies": {
-    "marshallbu/thread": "*"
+    "https://github.com/marshallbu/thread.git": "*"
   },
   "scripts": [
     "index.js"
