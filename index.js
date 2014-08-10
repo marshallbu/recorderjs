@@ -1,7 +1,7 @@
 var Thread = require('thread');
 
 var Recorder = function(source, cfg) {
-  console.log(source);
+  console.log('Recorder source: ', source);
   this.config = cfg || {};
   var bufferLen = this.config.bufferLen || 4096;
   this.context = source.context;
